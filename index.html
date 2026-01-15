@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pineapple Mastery: Professional Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .growth-monitor {
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.5rem;
+        }
+
+        .main-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .status-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .debug-console {
+            font-family: 'Courier New', Courier, monospace;
+            background: #1e293b;
+            color: #38bdf8;
+            font-size: 0.7rem;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .spec-card {
+            background: white;
+            border-bottom: 4px solid #fbce07;
+            transition: transform 0.2s;
+        }
+
+        .spec-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Dashboard Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center glass-panel p-6 rounded-3xl gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-yellow-600 tracking-tighter">PINEAPPLE MASTERY <span class="text-xs font-normal text-gray-400 border border-gray-200 px-2 py-0.5 rounded-full">PRO v2.0</span></h1>
+                <p class="text-sm text-gray-500 font-medium">パイナップル成長シミュレーション（現実準拠モデル）</p>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Elapsed Time</p>
+                    <p id="ui-day" class="text-2xl font-black text-slate-800">DAY 0</p>
+                </div>
+                <div class="h-10 w-px bg-gray-200"></div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Season</p>
+                    <p id="ui-season" class="text-lg font-bold text-orange-500">春</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Panel: Stats & Controls -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Status Card -->
+                <section class="glass-panel p-6 rounded-3xl space-y-6">
+                    <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center">
+                        <span class="indicator-dot bg-green-500 status-pulse"></span> 植物バイタル
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <!-- Water -->
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs font-bold text-slate-600">土壌湿度 (Moisture)</span>
+                                <span id="val-water" class="text-xs font-black text-blue-600">50%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                                <div id="bar-water" class="h-full bg-blue-500 transition-all duration-500" style="width: 50%"></div>
+                            </div>
+                        </div>
+                        <!-- Health -->
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs font-bold text-slate-600">全体健康度 (Vitality)</span>
+                                <span id="val-health" class="text-xs font-black text-green-600">100%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                                <div id="bar-health" class="h-full bg-green-500 transition-all duration-500" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        <!-- Temp -->
+                        <div class="bg-slate-50 p-3 rounded-xl flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-500 uppercase">周囲温度</span>
+                            <span id="val-temp" class="text-lg font-black text-slate-700">22°C</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                        <button id="btn-water" class="flex flex-col items-center justify-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all shadow-lg active:scale-95">
+                            <span class="text-2xl mb-1">💧</span>
+                            <span class="text-[10px] font-bold uppercase">Watering</span>
+                        </button>
+                        <button id="btn-move" class="flex flex-col items-center justify-center p-4 bg-white hover:bg-slate-50 border-2 border-slate-200 text-slate-700 rounded-2xl transition-all active:scale-95">
+                            <span id="move-icon" class="text-2xl mb-1">🏠</span>
+                            <span id="move-text" class="text-[10px] font-bold uppercase">To Indoors</span>
+                        </button>
+                        <button id="btn-skip" class="col-span-2 flex items-center justify-center gap-3 p-4 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl transition-all shadow-xl active:scale-95">
+                            <span class="text-xl">📅</span>
+                            <span class="font-bold text-sm">翌月まで時間を進める</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Debug Console -->
+                <section class="rounded-2xl overflow-hidden shadow-inner">
+                    <div class="bg-slate-700 px-3 py-1 flex justify-between items-center">
+                        <span class="text-[10px] text-slate-300 font-bold uppercase">System Debug Console</span>
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        </div>
+                    </div>
+                    <div id="debug-log" class="debug-console p-3 h-32 space-y-1">
+                        <div>[SYSTEM] Initialization successful...</div>
+                        <div>[STATE] Stage: 1 (Regeneration)</div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Panel: Visualizer & Info -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Main Image Display -->
+                <div class="glass-panel p-2 rounded-[2rem]">
+                    <div class="growth-monitor">
+                        <img id="plant-img" src="https://images.unsplash.com/photo-1596701062351-be5f6a362465?auto=format&fit=crop&q=80&w=1200" alt="Growth Stage" class="main-img">
+                        
+                        <!-- Overlay Labels -->
+                        <div class="absolute top-6 left-6 flex flex-col gap-2">
+                            <span id="ui-stage-badge" class="bg-black/60 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                                Stage 1: Regeneration
+                            </span>
+                            <span id="ui-weather-badge" class="bg-white/90 text-slate-800 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">
+                                ☀️ Sunny
+                            </span>
+                        </div>
+
+                        <!-- Progress Circle -->
+                        <div class="absolute bottom-6 right-6 w-20 h-20 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-2xl border-4 border-yellow-400">
+                            <div class="text-center">
+                                <p class="text-[10px] font-black text-gray-400 leading-none">GROWTH</p>
+                                <p id="ui-growth-perc" class="text-xl font-black text-slate-800">0%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fact Box -->
+                <div class="glass-panel p-6 rounded-3xl border-l-8 border-yellow-400">
+                    <div class="flex gap-4 items-start">
+                        <div class="bg-yellow-100 p-3 rounded-2xl text-2xl">💡</div>
+                        <div>
+                            <h3 class="font-black text-slate-800 text-sm mb-1 uppercase tracking-tight">栽培アドバイス</h3>
+                            <p id="ui-fact" class="text-sm text-slate-600 leading-relaxed">
+                                パイナップルは、食べた後の「ヘタ」の部分を水に浸けておくだけで根が出てきます。これを「冠芽（かんめ）挿し」と言います。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Harvest Result Modal -->
+    <div id="modal-result" class="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-[3rem] max-w-2xl w-full p-8 md:p-12 overflow-y-auto max-h-full shadow-2xl">
+            <div class="text-center mb-10">
+                <p id="res-subtitle" class="text-xs font-black text-yellow-500 uppercase tracking-[0.3em] mb-2">Harvest Result</p>
+                <h2 id="res-title" class="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter">SUCCESSFUL HARVEST!</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-yellow-400 rounded-3xl rotate-3 scale-105 opacity-20"></div>
+                    <img id="res-img" src="" alt="Result" class="relative z-10 w-full aspect-square object-cover rounded-3xl shadow-xl">
+                    <div id="res-grade-badge" class="absolute -top-5 -right-5 w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-2xl border-4 border-white rotate-12">
+                        S
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="spec-card p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">糖度 (Brix Index)</p>
+                        <p class="text-2xl font-black text-slate-800"><span id="res-brix">--</span> <small class="text-sm font-bold">度</small></p>
+                    </div>
+                    <div class="spec-card p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">果実重量 (Fruit Weight)</p>
+                        <p class="text-2xl font-black text-slate-800"><span id="res-weight">--</span> <small class="text-sm font-bold">kg</small></p>
+                    </div>
+                    <div class="spec-card p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">酸度 (Acidity Level)</p>
+                        <p class="text-2xl font-black text-slate-800"><span id="res-acid">--</span> <small class="text-sm font-bold">%</small></p>
+                    </div>
+                    <div class="spec-card p-4 rounded-2xl">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">栽培日数 (Cultivation Days)</p>
+                        <p class="text-2xl font-black text-slate-800"><span id="res-days">--</span> <small class="text-sm font-bold">日</small></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <p id="res-comment" class="text-gray-500 italic mb-8">「甘さと酸味のバランスが完璧です。あなたの努力が実を結びました。」</p>
+                <button onclick="location.reload()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl active:scale-95">
+                    RESTART CULTIVATION
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PINEAPPLE GROWTH SIMULATION ENGINE
+         * Based on realistic 18-24 month cycle.
+         */
+
+        const ASSETS = {
+            1: "https://images.unsplash.com/photo-1596701062351-be5f6a362465?auto=format&fit=crop&q=80&w=1000", // Start
+            2: "https://images.unsplash.com/photo-1550147760-44c9966d6bc7?auto=format&fit=crop&q=80&w=1000", // Leaves
+            3: "https://images.unsplash.com/photo-1591873335028-44440c954005?auto=format&fit=crop&q=80&w=1000", // Flower
+            4: "https://images.unsplash.com/photo-1550828520-4cb496926fc9?auto=format&fit=crop&q=80&w=1000", // Green fruit
+            5: "https://images.unsplash.com/photo-1589820296156-2454bb8a6ad1?auto=format&fit=crop&q=80&w=1000", // Ripe fruit
+            fail: "https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&q=80&w=1000" // Dead
+        };
+
+        const FACTS = [
+            "パイナップルは、食べた後の「ヘタ」を水に浸けておくだけで根が出てきます。これを「冠芽（かんめ）挿し」と言います。",
+            "根が3cmほど伸びたら土に植え替えましょう。乾燥には強いですが、水はけの悪い土だと根腐れしてしまいます。",
+            "成長期には15℃以上の気温が必要です。5℃を下回ると成長が止まり、氷点下で枯れてしまいます。冬の管理が鍵です。",
+            "開花期には、株の中心から赤い花芽が出てきます。表面のボコボコは、実は一つ一つの花が結実した跡なんです。",
+            "実が黄色く色づき、甘い香りが強くなったら収穫です！完熟パインは市販のものとは比べ物にならない甘さになります。"
+        ];
+
+        // Core State
+        let state = {
+            day: 0,
+            stage: 1,
+            water: 50,
+            health: 100,
+            temp: 22,
+            isIndoors: false,
+            seasonIdx: 0, // 0:春, 1:夏, 2:秋, 3:冬
+            growth: 0,
+            totalHealthScore: 0,
+            healthSamples: 0,
+            isGameOver: false
+        };
+
+        const SEASONS = ["春", "夏", "秋", "冬"];
+        const BASE_TEMPS = [18, 28, 16, 6];
+
+        // UI DOM
+        const elDay = document.getElementById('ui-day');
+        const elSeason = document.getElementById('ui-season');
+        const elWaterVal = document.getElementById('val-water');
+        const elWaterBar = document.getElementById('bar-water');
+        const elHealthVal = document.getElementById('val-health');
+        const elHealthBar = document.getElementById('bar-health');
+        const elTempVal = document.getElementById('val-temp');
+        const elPlantImg = document.getElementById('plant-img');
+        const elStageBadge = document.getElementById('ui-stage-badge');
+        const elGrowthPerc = document.getElementById('ui-growth-perc');
+        const elFact = document.getElementById('ui-fact');
+        const elDebug = document.getElementById('debug-log');
+        const elMoveText = document.getElementById('move-text');
+        const elMoveIcon = document.getElementById('move-icon');
+
+        function updateUI() {
+            elDay.innerText = `DAY ${state.day}`;
+            elSeason.innerText = SEASONS[state.seasonIdx];
+            
+            elWaterVal.innerText = `${Math.round(state.water)}%`;
+            elWaterBar.style.width = `${state.water}%`;
+            elHealthVal.innerText = `${Math.round(state.health)}%`;
+            elHealthBar.style.width = `${state.health}%`;
+            
+            elTempVal.innerText = `${state.temp}°C`;
+            elGrowthPerc.innerText = `${Math.floor(state.growth)}%`;
+
+            const stages = ["Regeneration", "Vegetative Growth", "Flowering", "Fruiting", "Ripening"];
+            elStageBadge.innerText = `Stage ${state.stage}: ${stages[state.stage - 1]}`;
+
+            elMoveText.innerText = state.isIndoors ? "To Outdoors" : "To Indoors";
+            elMoveIcon.innerText = state.isIndoors ? "🌳" : "🏠";
+
+            // Visual State Colors
+            if (state.water < 20 || state.water > 90) elWaterBar.className = "h-full bg-red-500 transition-all duration-500";
+            else elWaterBar.className = "h-full bg-blue-500 transition-all duration-500";
+
+            if (state.health < 40) elHealthBar.className = "h-full bg-red-500 transition-all duration-500";
+            else elHealthBar.className = "h-full bg-green-500 transition-all duration-500";
+
+            // Update Image
+            const targetImg = ASSETS[state.stage];
+            if (elPlantImg.src !== targetImg) {
+                elPlantImg.style.filter = "brightness(0.5)";
+                setTimeout(() => {
+                    elPlantImg.src = targetImg;
+                    elPlantImg.style.filter = "brightness(1)";
+                }, 300);
+            }
+        }
+
+        function logDebug(msg) {
+            const time = new Date().toLocaleTimeString('ja-JP', { hour12: false });
+            const div = document.createElement('div');
+            div.innerText = `[${time}] ${msg}`;
+            elDebug.prepend(div);
+            if (elDebug.childNodes.length > 50) elDebug.lastChild.remove();
+        }
+
+        function calculateTemperature() {
+            const base = BASE_TEMPS[state.seasonIdx];
+            const variance = (Math.random() * 6) - 3;
+            let finalTemp = Math.round(base + variance);
+            
+            if (state.isIndoors) {
+                // Room temp is usually 18-25
+                finalTemp = 22 + Math.round((Math.random() * 4) - 2);
+            }
+            state.temp = finalTemp;
+        }
+
+        function nextTurn() {
+            if (state.isGameOver) return;
+
+            // Time step
+            state.day += 30;
+            state.seasonIdx = Math.floor((state.day % 360) / 90);
+            
+            calculateTemperature();
+
+            // Water usage
+            const evaporation = state.temp > 25 ? 25 : 15;
+            state.water -= evaporation;
+            if (state.water < 0) state.water = 0;
+
+            // Health Logic
+            let damage = 0;
+            let reason = "Healthy";
+
+            // Temp check
+            if (state.temp < 10) {
+                damage += 25;
+                reason = "Cold Stress";
+                logDebug("[WARN] 低温によるダメージを検知。");
+            } else if (state.temp > 35) {
+                damage += 10;
+                reason = "Heat Stress";
+            }
+
+            // Water check
+            if (state.water <= 0) {
+                damage += 20;
+                reason = "Dehydration";
+            } else if (state.water > 90) {
+                damage += 15;
+                reason = "Root Rot Risk";
+            }
+
+            // Recovery
+            if (damage === 0 && state.health < 100) {
+                state.health = Math.min(100, state.health + 5);
+            } else {
+                state.health = Math.max(0, state.health - damage);
+            }
+
+            // Track stats for result
+            state.totalHealthScore += state.health;
+            state.healthSamples++;
+
+            // Growth logic
+            if (state.health > 40) {
+                // Growth speed depends on temp and health
+                let rate = (state.health / 100);
+                if (state.temp >= 20 && state.temp <= 30) rate *= 1.5;
+                if (state.temp < 15) rate *= 0.2;
+                
+                state.growth += (12 * rate); // Base growth per month
+                logDebug(`[GROWTH] Speed: x${rate.toFixed(2)}`);
+            } else {
+                logDebug("[SYSTEM] 成長停止：不健康な状態。");
+            }
+
+            // Stage check
+            const oldStage = state.stage;
+            if (state.growth >= 100) state.stage = 5;
+            else if (state.growth >= 75) state.stage = 4;
+            else if (state.growth >= 50) state.stage = 3;
+            else if (state.growth >= 15) state.stage = 2;
+
+            if (state.stage !== oldStage) {
+                elFact.innerText = FACTS[state.stage - 1];
+                logDebug(`[EVOLUTION] Stage Up: ${state.stage}`);
+            }
+
+            if (state.health <= 0) {
+                endGame(false);
+            } else if (state.stage === 5 && state.growth >= 120) {
+                endGame(true);
+            }
+
+            updateUI();
+        }
+
+        function endGame(success) {
+            state.isGameOver = true;
+            const modal = document.getElementById('modal-result');
+            modal.classList.remove('hidden');
+
+            if (success) {
+                const avgHealth = state.totalHealthScore / state.healthSamples;
+                
+                // Specs Calculation
+                const brix = (12 + (avgHealth / 10) + (Math.random() * 2)).toFixed(1);
+                const weight = (0.8 + (avgHealth / 50) + (Math.random() * 0.5)).toFixed(2);
+                const acid = (1.2 - (avgHealth / 200)).toFixed(2);
+                
+                let grade = "C";
+                if (avgHealth > 90) grade = "S";
+                else if (avgHealth > 75) grade = "A";
+                else if (avgHealth > 50) grade = "B";
+
+                document.getElementById('res-title').innerText = "HARVEST SUCCESS!";
+                document.getElementById('res-brix').innerText = brix;
+                document.getElementById('res-weight').innerText = weight;
+                document.getElementById('res-acid').innerText = acid;
+                document.getElementById('res-days').innerText = state.day;
+                document.getElementById('res-img').src = ASSETS[5];
+                document.getElementById('res-grade-badge').innerText = grade;
+                
+                const comments = {
+                    "S": "「究極のパイナップルです。宝石のような甘さと香りはプロ級です。」",
+                    "A": "「非常に素晴らしい出来栄えです。瑞々しく、強い甘みを感じます。」",
+                    "B": "「よく育ちました。家庭で楽しむには十分すぎるほど美味しいです。」",
+                    "C": "「少し小ぶりですが、愛情をかけて育てた価値のある一粒です。」"
+                };
+                document.getElementById('res-comment').innerText = comments[grade[0]];
+
+            } else {
+                document.getElementById('res-title').innerText = "CULTIVATION FAILED";
+                document.getElementById('res-subtitle').innerText = "GAME OVER";
+                document.getElementById('res-title').classList.add('text-red-600');
+                document.getElementById('res-img').src = ASSETS.fail;
+                document.getElementById('res-grade-badge').innerText = "F";
+                document.getElementById('res-grade-badge').classList.replace('bg-yellow-400', 'bg-slate-600');
+                document.getElementById('res-comment').innerText = "「植物が力尽きました。次は水やりと温度管理に注意しましょう。」";
+                // Hide specs for fail
+                document.querySelectorAll('.spec-card').forEach(el => el.style.opacity = '0.3');
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('btn-water').addEventListener('click', () => {
+            if (state.isGameOver) return;
+            state.water = Math.min(100, state.water + 30);
+            logDebug("[ACTION] 水やり実行。");
+            updateUI();
+        });
+
+        document.getElementById('btn-move').addEventListener('click', () => {
+            if (state.isGameOver) return;
+            state.isIndoors = !state.isIndoors;
+            calculateTemperature();
+            logDebug(`[ACTION] 場所移動: ${state.isIndoors ? '室内' : '屋外'}`);
+            updateUI();
+        });
+
+        document.getElementById('btn-skip').addEventListener('click', nextTurn);
+
+        // Initial Run
+        updateUI();
+    </script>
+</body>
+</html>
